@@ -1,1 +1,139 @@
-print("hello world")
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 
+Resources:
+
+  MySNSTopic:
+  Type: AWS::SNS::Topic
+  Properties:
+    Subscription:
+      - Endpoint:
+          Fn::GetAtt:
+            - "MyQueue1"
+            - "Arn"
+        Protocol: "sqs"
+      - Endpoint:
+          Fn::GetAtt:
+            - "MyQueue2"
+            - "Arn"
+        Protocol: "sqs"
+    TopicName: "DeregisterSNSTopic"
+	
+  RegisterLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+			
+  RegisterLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt [ RegisterLambdaExecutionRole, Arn ]
+      Code:
+        ZipFile: |
+   
+      Timeout: 900
+	  MemorySize: 10240
+	  VpcConfig:
+        SecurityGroupIds:
+          - sg-085912345678492fb
+        SubnetIds:
+          - subnet-071f712345678e7c8
+		  
+  DeregisterLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+			
+  DeregisterLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt [ DeregisterLambdaExecutionRole, Arn ]
+      Code:
+        ZipFile: |
+          
+      Timeout: 900
+	  MemorySize: 10240
+	  VpcConfig:
+        SecurityGroupIds:
+          - sg-085912345678492fb
+        SubnetIds:
+          - subnet-071f712345678e7c8
+		  
+  CommonAlbTagsLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+			
+  CommonAlbTagsLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt [ CommonAlbTagsLambdaExecutionRole, Arn ]
+      Code:
+        ZipFile: |
+           
+      Timeout: 900
+	  MemorySize: 10240
+	  VpcConfig:
+        SecurityGroupIds:
+          - sg-085912345678492fb
+        SubnetIds:
+          - subnet-071f712345678e7c8
+		  
+  StateMachineExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - !Sub states.${AWS::Region}.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: StatesExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+
+  MyStateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      DefinitionString:
+        !Sub
+          - |-
+            {
+              "Comment": "A Hello World example using an AWS Lambda function",
+              "StartAt": "HelloWorld",
+              "States": {
+                "HelloWorld": {
+                  "Type": "Task",
+                  "Resource": "${lambdaArn}",
+                  "End": true
+                }
+              }
+            }
+          - {lambdaArn: !GetAtt [ MyLambdaFunction, Arn ]}
+      RoleArn: !GetAtt [ StateMachineExecutionRole, Arn ]
