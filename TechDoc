@@ -1,0 +1,13 @@
+The Eventbridge is used to schedule the execution of the step function. The event bridge is configured with AWS step function as its target so that it triggers the step function after the provided rate.
+
+Once the eventbridge triggers the step function, the process starts. The step function is responsible to orchestrate the steps of the process. 
+
+First, it hits the Common ALB tags function with the fetch step. The Common function gets the ALB that have the given tag. Then from the ALB, thet fetch the Target Group and the Target ARN. Then, using the describe target health sdk, the function fetches the list of instances in the target group. This list and the Target group ARN are then passed to the input of the next step in the State machine.
+
+After fetching the details, the Step function triggers the De-register Lambda. The deregister lambda leverages the deregister-targets boto3 sdk to de register each instances from the Elastic load balancer. This function also returns the same outputs for the next function.
+
+Any AMI updates and patching required can be performed after this stage.
+
+Next, the Register Lambda is triggered which uses the register-targets sdk to re register the same list of instances to the provides ALB target.
+
+The re registration is the final step of this process, after which the step function calls the Common ALB tags function again with the sns step. The success outcome of the process is published to the sns topic which ends the step function execution.
