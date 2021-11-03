@@ -1,0 +1,9 @@
+Current status - 
+cloud watch and lambda integration is complete. The autoscaling up and down are working
+ How to run - Change the ami id in the parameter store and it will trigger cw automatically
+ Changing the ami triggers the cw alarm that triggers the update ami lambda with detail-type - parameter updated. Then a launch configuration is copied from the old instances and the new ami is used for it
+This new launch config is used to update the asg and desired capacity is changed to 2n+1
+This upscaling triggers the second cw alarm for each new instance created. So if we have 3 new instances, the alarm is triggered 3 times
+Cw will trigger the lambda with detail type Instance created successfully and lambda will change the desired capacity to n-1
+Ultimately the fault tolerant instances will be terminated and the desired capacity will return to (n-1)/2
+ Eg. If we started at 3 instances, during upscaling the desired capacity changes to 2n + 1 which is 7. Because 4 new instances will be created, the second alarm will be triggered 4 times and all 4 instances will be ultimately terminated, desired capacity now comes back again to 3
