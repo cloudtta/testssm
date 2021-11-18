@@ -1,0 +1,15 @@
+Description
+
+The solution implements an automated updation of AMI on all instances in an Auto Scaling Group using Cloudwatch Alarms and Python Boto3 packages.
+
+Architecture
+
+Approach
+
+The new ami is updated in Parameter Store which is tracked using a cloudwatch alarm. The cloud watch alarm triggers a lambda function which creates a new launch configuration using the AMI and updates the autoscaling group with it. The desired capacity of the ASG is updated to (n*2)+1 to accommodate fault tolerant instances. Another cloud watch alarm tracks the newly created instances. As soon as the instances are healthy, the alarm is triggered (n-1)/2 times and each time 1 fault tolerant instances is decommissioned from the ASG.
+
+Source code
+
+CLI CFT
+
+Workflow steps
